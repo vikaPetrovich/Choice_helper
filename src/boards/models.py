@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from src.db import Base
 import uuid
 import datetime
+from src.cards.models import Card
 
 class Board(Base):
     __tablename__ = "boards"

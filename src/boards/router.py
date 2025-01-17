@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+
 from sqlalchemy.orm import Session
-from src.db import get_db
+
 from src.boards.services import (
     get_all_boards_service,
     create_board_service,
@@ -9,7 +12,8 @@ from src.boards.services import (
     delete_board_service,
 )
 from src.boards.schemas import BoardCreate, BoardUpdate, BoardResponse
-from uuid import UUID
+from src.db import get_db
+
 
 router = APIRouter()
 
@@ -28,8 +32,9 @@ async def get_board(board_id: UUID, db: Session = Depends(get_db)):
     return await get_board_service(board_id=board_id, db=db)
 
 @router.put("/{board_id}", response_model=BoardResponse)
-def update_board(board_id: UUID, board: BoardUpdate, db: Session = Depends(get_db)):
-    return update_board_service(board_id=board_id, board_data=board, db=db)
+async def update_board(board_id: UUID, board: BoardUpdate, db: AsyncSession = Depends(get_db)):
+    return await update_board_service(board_id=board_id, board_data=board, db=db)
+
 
 @router.delete("/{board_id}")
 def delete_board(board_id: UUID, db: Session = Depends(get_db)):

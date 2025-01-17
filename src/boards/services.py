@@ -60,11 +60,18 @@ async def update_board_service(board_id: UUID, board_data: BoardUpdate, db: Asyn
         return board
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении доски: {e}")
-def delete_board_service(board_id: UUID, db: Session = None):
-    board = db.query(Board).filter(Board.id == board_id).first()
-    if not board:
-        raise HTTPException(status_code=404, detail="Доска не найдена")
-    db.delete(board)
-    db.commit()
-    return {"id": str(board_id), "status": "удалена"}
+async def delete_board_service(board_id: UUID, db: AsyncSession):
+    try:
+        # Асинхронный запрос для получения доски
+        query = select(Board).where(Board.id == board_id)
+        result = await db.execute(query)
+        board = result.scalars().first()
 
+        if not board:
+            raise HTTPException(status_code=404, detail="Доска не найдена")
+
+        await db.delete(board)  # Удаление доски
+        await db.commit()       # Сохранение изменений
+        return {"message": f"Доска с ID {board_id} успешно удалена"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении доски: {e}")

@@ -1,19 +1,85 @@
-def get_all_cards_service():
-    print("Получение списка всех карт...")
-    return ["карточка_1", "карточка_2"]
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from fastapi import HTTPException
+from uuid import UUID
+from src.cards.models import Card
+from src.cards.schemas import CardCreate, CardUpdate
 
-def create_card_service():
-    print("Создание новой карты...")
-    return {"id": "1", "text": "Новая карта"}
 
-def get_card_service(card_id: str):
-    print(f"Получение информации о карте с ID: {card_id}")
-    return {"id": card_id, "text": f"Карточка {card_id}"}
+async def get_all_cards_service(skip: int, limit: int, db: AsyncSession):
+    try:
+        query = select(Card).offset(skip).limit(limit)
+        result = await db.execute(query)
+        cards = result.scalars().all()
+        return cards
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении карточек: {e}")
 
-def update_card_service(card_id: str):
-    print(f"Обновление карты с ID: {card_id}")
-    return {"id": card_id, "text": f"Обновленная карточка {card_id}"}
 
-def delete_card_service(card_id: str):
-    print(f"Удаление карты с ID: {card_id}")
-    return {"id": card_id, "status": "удалена"}
+async def create_card_service(card_data: CardCreate, db: AsyncSession):
+    try:
+        new_card = Card(
+            text=card_data.text,
+            short_description=card_data.short_description,
+            image_url=card_data.image_url,
+            status=card_data.status,
+        )
+        db.add(new_card)
+        await db.commit()
+        await db.refresh(new_card)
+        return new_card
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании карточки: {e}")
+
+
+async def get_card_service(card_id: UUID, db: AsyncSession):
+    try:
+        query = select(Card).where(Card.id == card_id)
+        result = await db.execute(query)
+        card = result.scalars().first()
+        if not card:
+            raise HTTPException(status_code=404, detail="Карточка не найдена")
+        return card
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении карточки: {e}")
+
+
+async def update_card_service(card_id: UUID, card_data: CardUpdate, db: AsyncSession):
+    try:
+        query = select(Card).where(Card.id == card_id)
+        result = await db.execute(query)
+        card = result.scalars().first()
+
+        if not card:
+            raise HTTPException(status_code=404, detail="Карточка не найдена")
+
+        if card_data.text is not None:
+            card.text = card_data.text
+        if card_data.short_description is not None:
+            card.short_description = card_data.short_description
+        if card_data.image_url is not None:
+            card.image_url = card_data.image_url
+        if card_data.status is not None:
+            card.status = card_data.status
+
+        await db.commit()
+        await db.refresh(card)
+        return card
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении карточки: {e}")
+
+
+async def delete_card_service(card_id: UUID, db: AsyncSession):
+    try:
+        query = select(Card).where(Card.id == card_id)
+        result = await db.execute(query)
+        card = result.scalars().first()
+
+        if not card:
+            raise HTTPException(status_code=404, detail="Карточка не найдена")
+
+        await db.delete(card)
+        await db.commit()
+        return {"message": f"Карточка с ID {card_id} успешно удалена"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении карточки: {e}")

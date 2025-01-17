@@ -37,5 +37,5 @@ async def update_board(board_id: UUID, board: BoardUpdate, db: AsyncSession = De
 
 
 @router.delete("/{board_id}")
-def delete_board(board_id: UUID, db: Session = Depends(get_db)):
-    return delete_board_service(board_id=board_id, db=db)
+async def delete_board(board_id: UUID, db: AsyncSession = Depends(get_db)):
+    return await delete_board_service(board_id=board_id, db=db)

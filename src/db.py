@@ -1,23 +1,19 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import configure_mappers
 from src.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
 
-# Создаем асинхронное подключение к базе данных
-engine = create_async_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
-
+engine = create_async_engine(DATABASE_URL, echo=True, pool_pre_ping=True)  # Включаем pool_pre_ping
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 Base = declarative_base()
 
-# Базовый класс для всех моделей
-Base = declarative_base()
-
-# Зависимость для получения сессии
 async def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        await db.close()  # Используйте await для закрытия сессии
+    async with async_session() as session:
+        yield session
+
+# После определения всех моделей
+configure_mappers()

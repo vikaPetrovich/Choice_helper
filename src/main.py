@@ -1,8 +1,21 @@
 from fastapi import FastAPI
 from src.boards.router import router as boards_router
 from src.cards.router import router as cards_router
+from src.sessions.router import router as sessions_router
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 
 app = FastAPI(title="Choice Helper API", version="1.0.0")
+app.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешает запросы с любого источника
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Подключение маршрутов
 app.include_router(boards_router, prefix="/boards", tags=["Boards"])

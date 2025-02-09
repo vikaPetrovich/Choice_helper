@@ -10,8 +10,10 @@ from src.boards.services import (
     get_board_service,
     update_board_service,
     delete_board_service,
+    add_card_to_board_service,
 )
-from src.boards.schemas import BoardCreate, BoardUpdate, BoardResponse
+from src.boards.schemas import BoardCreate, BoardUpdate, BoardResponse, BoardCardCreate
+from src.cards.schemas import CardResponse
 from src.db import get_db
 
 
@@ -39,3 +41,13 @@ async def update_board(board_id: UUID, board: BoardUpdate, db: AsyncSession = De
 @router.delete("/{board_id}")
 async def delete_board(board_id: UUID, db: AsyncSession = Depends(get_db)):
     return await delete_board_service(board_id=board_id, db=db)
+
+@router.post("/{board_id}/cards/", response_model=dict)
+async def add_card_to_board(board_id: UUID, card_data: BoardCardCreate, db: AsyncSession = Depends(get_db)):
+    return await add_card_to_board_service(board_id=board_id, card_id=card_data.card_id, db=db)
+
+@router.get("/{board_id}/cards", response_model=list[CardResponse])
+async def get_board_cards(board_id: UUID, db: AsyncSession = Depends(get_db)):
+    from src.boards.services import get_cards_by_board_service
+    return await get_cards_by_board_service(board_id, db)
+

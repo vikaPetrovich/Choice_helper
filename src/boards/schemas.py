@@ -20,3 +20,6 @@ class BoardResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()})
+
+class BoardCardCreate(BaseModel):
+    card_id: UUID

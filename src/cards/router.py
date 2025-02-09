@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+import shutil
+import os
 from src.cards.services import (
     get_all_cards_service,
     create_card_service,
@@ -12,6 +14,15 @@ from src.cards.schemas import CardCreate, CardUpdate, CardResponse
 from src.db import get_db
 
 router = APIRouter()
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.post("/upload_image/")
+async def upload_image(file: UploadFile = File(...)):
+    file_location = f"{UPLOAD_DIR}/{file.filename}"
+    with open(file_location, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"image_url": file_location}
 
 @router.get("/", response_model=list[CardResponse])
 async def get_cards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
@@ -26,7 +37,11 @@ async def get_card(card_id: UUID, db: AsyncSession = Depends(get_db)):
     return await get_card_service(card_id=card_id, db=db)
 
 @router.put("/{card_id}", response_model=CardResponse)
-async def update_card(card_id: UUID, card: CardUpdate, db: AsyncSession = Depends(get_db)):
+async def update_card(
+    card_id: UUID,
+    card: CardUpdate,
+    db: AsyncSession = Depends(get_db),
+):
     return await update_card_service(card_id=card_id, card_data=card, db=db)
 
 @router.delete("/{card_id}")

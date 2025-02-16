@@ -4,11 +4,13 @@ from src.cards.router import router as cards_router
 from src.sessions.router import router as sessions_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from src.swipes.router import router as swipes_router
 
 
 app = FastAPI(title="Choice Helper API", version="1.0.0")
 app.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.include_router(swipes_router, prefix="/swipes", tags=["Swipes"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Разрешает запросы с любого источника

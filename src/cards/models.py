@@ -1,4 +1,5 @@
 # app/cards/models.py
+
 from sqlalchemy import Column, String, Enum, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -18,5 +19,4 @@ class Card(Base):
     updated_at = Column(TIMESTAMP, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     boards = relationship("BoardCard", back_populates="card")
-
 

@@ -11,6 +11,7 @@ class Swipe(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("sessions.id"), nullable=False)
+    session = relationship("Session", back_populates="swipes")  # <-- вот тут связь
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=True)  # NULL для индивидуальных сессий
     liked = Column(Boolean, nullable=False)

@@ -21,8 +21,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const cardImage = document.getElementById("cardImage");
     const openAddCardModal = document.getElementById("openAddCardModal");
 
-    let currentBoardId = null;
+    '////'
 
+
+    const startSessionButton = document.getElementById("startSessionButton");
+    const sessionScreen = document.getElementById("sessionScreen");
+    const sessionCardImage = document.getElementById("sessionCardImage");
+    const sessionCardText = document.getElementById("sessionCardText");
+    const prevCardButton = document.getElementById("prevCard");
+    const nextCardButton = document.getElementById("nextCard");
+    const exitSessionButton = document.getElementById("exitSession");
+
+     '////'
+    let currentBoardId = null;
+     '////'
+    let sessionId = null;
+    let cards = [];
+    let currentCardIndex = 0;
+    let isLoadingBoards = false;
+     '////'
     async function loadBoards() {
         const response = await fetch("http://127.0.0.1:8000/boards");
         const boards = await response.json();
@@ -77,38 +94,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    async function loadBoardCards(boardId) {
-    try {
-        const cardsResponse = await fetch(`http://127.0.0.1:8000/boards/${boardId}/cards`);
-        const cards = await cardsResponse.json();
+async function loadBoardCards(boardId) {
+    const response = await fetch(`http://127.0.0.1:8000/boards/${boardId}/cards`);
+    const cards = await response.json();
 
-        const cardsList = document.getElementById("cardsList");
-        cardsList.innerHTML = ""; // Очищаем перед обновлением
+    cardsList.innerHTML = "";
+    cards.forEach(card => {
+        const cardItem = document.createElement("div");
+        cardItem.classList.add("card-item");
 
-        cards.forEach(card => {
-            const cardItem = document.createElement("div");
-            cardItem.classList.add("card-item");
+        const cardTextElem = document.createElement("p");
+        cardTextElem.textContent = card.text;
 
-            const cardText = document.createElement("p");
-            cardText.textContent = card.text;
+        if (card.image_url) {
+            const cardImageElem = document.createElement("img");
+            cardImageElem.src = `http://127.0.0.1:8000/${card.image_url}`;
+            cardImageElem.alt = "Card Image";
+            cardImageElem.classList.add("card-image");
+            cardItem.appendChild(cardImageElem);
+        }
 
-            if (card.image_url) { // Если у карточки есть изображение
-                const cardImage = document.createElement("img");
-                cardImage.src = `http://127.0.0.1:8000/${card.image_url}`;
-                cardImage.alt = "Изображение карточки";
-                cardImage.classList.add("card-image");
-                cardItem.appendChild(cardImage);
-            }
-
-            cardItem.appendChild(cardText);
-            cardsList.appendChild(cardItem);
-        });
-    } catch (error) {
-        console.error("Ошибка при загрузке карточек:", error);
-        alert("Не удалось загрузить карточки.");
-    }
+        cardItem.appendChild(cardTextElem);
+        cardsList.appendChild(cardItem);
+    });
 }
-
 
 
     editForm.addEventListener("submit", async (e) => {
@@ -131,42 +140,155 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    document.getElementById("createCardForm").addEventListener("submit", async function (e) {
+    addCardForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    let formData = new FormData();
-    formData.append("text", document.getElementById("cardText").value);
-    formData.append("description", document.getElementById("cardDescription").value);
-    formData.append("board_id", currentBoardId); // Связываем карточку с доской
+    const formData = new FormData();
+    formData.append("text", cardText.value.trim());
+    formData.append("short_description", cardDescription.value.trim());
 
-    let fileInput = document.getElementById("cardImage");
-    if (fileInput.files.length > 0) {
-        formData.append("image", fileInput.files[0]); // Добавляем файл в форму
+    if (cardImage.files[0]) {
+        formData.append("image", cardImage.files[0]);
+    }
+
+    const response = await fetch("http://127.0.0.1:8000/cards/", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.ok) {
+        alert("Ошибка при создании карточки.");
+        return;
+    }
+
+    const createdCard = await response.json();
+
+    // Привязка карточки к текущей доске
+    const boardAttachResponse = await fetch(`http://127.0.0.1:8000/boards/${currentBoardId}/cards/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: createdCard.id })
+    });
+
+    if (!boardAttachResponse.ok) {
+        alert("Ошибка при привязке карточки к доске.");
+        return;
+    }
+
+    addCardModal.style.display = "none";
+    cardText.value = "";
+    cardDescription.value = "";
+    cardImage.value = "";
+
+    await loadBoardCards(currentBoardId);
+});
+
+
+'////'
+startSessionButton.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    if (!currentBoardId) {
+        alert("Ошибка: не удалось определить ID доски.");
+        return;
     }
 
     try {
-        let response = await fetch("http://127.0.0.1:8000/cards/", {
+        // Создаем новую сессию
+        const response = await fetch("http://127.0.0.1:8000/sessions/", {
             method: "POST",
-            body: formData
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                board_id: currentBoardId,
+                type: "individual"
+            })
         });
 
         if (!response.ok) {
-            throw new Error("Ошибка при создании карточки");
+            const errorText = await response.text();
+            console.error("Ошибка при создании сессии:", errorText);
+            alert(`Ошибка при создании сессии: ${errorText}`);
+            return;
         }
 
-        closeCreateCardModal(); // Закрываем модалку после успешного создания
-        loadBoardCards(currentBoardId); // Перезагружаем карточки
+        const createdSession = await response.json();
+        sessionId = createdSession.id; // Запоминаем ID сессии
+
+        // Загружаем карточки доски
+        const cardsResponse = await fetch(`http://127.0.0.1:8000/boards/${currentBoardId}/cards`);
+        cards = await cardsResponse.json();
+
+        if (cards.length === 0) {
+            alert("В этой доске нет карточек.");
+            return;
+        }
+
+        currentCardIndex = cards.length - 1; // Показываем последнюю карточку
+        updateSessionCard();
+
+        sessionScreen.style.display = "flex"; // Открываем окно сессии
+        boardModal.style.display = "none"; // Закрываем доску
     } catch (error) {
-        alert(error.message);
+        console.error("Ошибка при отправке запроса:", error);
+        alert("Ошибка при отправке запроса.");
     }
 });
 
-        addCardModal.style.display = "none";
-        cardText.value = "";
-        cardDescription.value = "";
+// Обновление отображаемой карточки
+function updateSessionCard() {
+    if (cards.length === 0 || currentCardIndex < 0 || currentCardIndex >= cards.length) {
+        sessionCardImage.src = "";
+        sessionCardText.textContent = "Нет карточек";
+        return;
+    }
 
-        await loadBoardCards(currentBoardId); // Теперь обновляет список карточек автоматически
-    });
+    const card = cards[currentCardIndex];
+    sessionCardImage.src = card.image_url ? `http://127.0.0.1:8000/${card.image_url}` : "";
+    sessionCardText.textContent = card.text;
+}
+
+// Кнопка "Вперед"
+nextCardButton.addEventListener("click", () => {
+    if (currentCardIndex < cards.length - 1) {
+        currentCardIndex++;
+        updateSessionCard();
+    }
+});
+
+// Кнопка "Назад"
+prevCardButton.addEventListener("click", () => {
+    if (currentCardIndex > 0) {
+        currentCardIndex--;
+        updateSessionCard();
+    }
+});
+
+// Завершение сессии (удаление сессии)
+exitSessionButton.addEventListener("click", async () => {
+    if (!sessionId) {
+        alert("Сессия не найдена.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/sessions/${sessionId}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Ошибка при удалении сессии.");
+        }
+
+        alert("Сессия завершена.");
+        sessionScreen.style.display = "none"; // Закрываем окно сессии
+    } catch (error) {
+        console.error("Ошибка при удалении сессии:", error);
+        alert("Ошибка при завершении сессии.");
+    }
+});
+
+
+'///'
 
     openAddCardModal.addEventListener("click", () => {
         addCardModal.style.display = "flex";

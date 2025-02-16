@@ -5,7 +5,29 @@ from uuid import UUID
 from src.cards.models import Card
 from src.cards.schemas import CardCreate, CardUpdate
 
+'////////'
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from uuid import uuid4
+from src.cards.models import Card
+from src.boards.models import Board, BoardCard
+from src.cards.schemas import CardCreate
 
+
+async def create_card_service(card_data: CardCreate, db: AsyncSession):
+    new_card = Card(
+        id=uuid4(),
+        text=card_data.text,
+        short_description=card_data.short_description,
+        image_url=card_data.image_url
+    )
+
+    db.add(new_card)
+    await db.commit()
+    await db.refresh(new_card)
+
+    return new_card  # Карточка создаётся без привязки к доске
+'//////'
 async def get_all_cards_service(skip: int, limit: int, db: AsyncSession):
     try:
         query = select(Card).offset(skip).limit(limit)
@@ -15,7 +37,7 @@ async def get_all_cards_service(skip: int, limit: int, db: AsyncSession):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении карточек: {e}")
 
-
+'''
 async def create_card_service(card_data: CardCreate, db: AsyncSession):
     try:
         new_card = Card(
@@ -31,7 +53,7 @@ async def create_card_service(card_data: CardCreate, db: AsyncSession):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при создании карточки: {e}")
 
-
+'''
 async def get_card_service(card_id: UUID, db: AsyncSession):
     try:
         query = select(Card).where(Card.id == card_id)

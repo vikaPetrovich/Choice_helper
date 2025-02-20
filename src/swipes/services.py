@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from src.swipes.models import Swipe
 from src.swipes.schemas import SwipeCreate
 from uuid import UUID
+from sqlalchemy.orm import joinedload
 
 async def create_swipe_service(swipe_data: SwipeCreate, db: AsyncSession):
     new_swipe = Swipe(
@@ -18,6 +19,11 @@ async def create_swipe_service(swipe_data: SwipeCreate, db: AsyncSession):
     return new_swipe
 
 async def get_swipes_by_session_service(session_id: UUID, db: AsyncSession):
-    query = select(Swipe).where(Swipe.session_id == session_id)
+    query = (
+        select(Swipe)
+        .options(joinedload(Swipe.card))  # Теперь загружает карточки
+        .where(Swipe.session_id == session_id)
+    )
     result = await db.execute(query)
-    return result.scalars().all()
+    swipes = result.scalars().all()
+    return swipes

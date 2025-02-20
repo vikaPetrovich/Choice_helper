@@ -21,9 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const cardImage = document.getElementById("cardImage");
     const openAddCardModal = document.getElementById("openAddCardModal");
 
-    '////'
-
-
     const startSessionButton = document.getElementById("startSessionButton");
     const sessionScreen = document.getElementById("sessionScreen");
     const sessionCardImage = document.getElementById("sessionCardImage");
@@ -32,14 +29,84 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextCardButton = document.getElementById("nextCard");
     const exitSessionButton = document.getElementById("exitSession");
 
-     '////'
+    const likedCardsModal = document.getElementById("likedCardsModal");
+    const likedCardsList = document.getElementById("likedCardsList");
+    const closeLikedCardsModal = document.getElementById("closeLikedCardsModal");
+    const confirmEndSessionButton = document.getElementById("confirmEndSession");
+    const closeLikedCardsButton = document.getElementById("closeLikedCards");
+    const addBoardButton = document.getElementById("addBoardButton");
+    const addBoardModal = document.getElementById("addBoardModal");
+    const closeAddBoardModal = document.getElementById("closeAddBoardModal");
+    const addBoardForm = document.getElementById("addBoardForm");
+
+
+
     let currentBoardId = null;
-     '////'
     let sessionId = null;
     let cards = [];
     let currentCardIndex = 0;
     let isLoadingBoards = false;
-     '////'
+    let viewedCards = new Set(); // Для отслеживания уже просмотренных карточек
+
+
+// Функция создания доски
+    async function createBoard(event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
+
+        boardTitle.value = "";
+        boardDescription.value = "";
+
+
+        if (!title) {
+            alert("Введите название доски");
+            return;
+        }
+
+        try {
+            const response = await fetch("http://127.0.0.1:8000/boards/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        title: title.trim(),
+        description: description.trim() || "" // Пустая строка вместо null
+    })
+});
+
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`Ошибка создания доски: ${errorMessage}`);
+            }
+
+            const newBoard = await response.json();
+            console.log("Создана новая доска:", newBoard);
+
+            // Добавляем новую доску в список
+            const li = document.createElement("li");
+            li.textContent = newBoard.title;
+            li.dataset.id = newBoard.id;
+            boardsList.appendChild(li);
+
+            // Закрываем модальное окно и очищаем форму
+            addBoardModal.style.display = "none";
+            boardTitleInput.value = "";
+            boardDescriptionInput.value = "";
+
+        } catch (error) {
+            console.error("Ошибка при создании доски:", error);
+            alert("Ошибка при создании доски.");
+        }
+    }
+
+
+     addBoardButton.addEventListener("click", () => {
+        addBoardModal.style.display = "flex";
+    });
+
+    closeAddBoardModal.addEventListener("click", () => {
+        addBoardModal.style.display = "none";
+    });
+
     async function loadBoards() {
         const response = await fetch("http://127.0.0.1:8000/boards");
         const boards = await response.json();
@@ -108,7 +175,7 @@ async function loadBoardCards(boardId) {
 
         if (card.image_url) {
             const cardImageElem = document.createElement("img");
-            cardImageElem.src = `http://127.0.0.1:8000/${card.image_url}`;
+           cardImageElem.src = `http://127.0.0.1:8000/uploads/${card.image_url.replace(/^uploads\//, "")}`;
             cardImageElem.alt = "Card Image";
             cardImageElem.classList.add("card-image");
             cardItem.appendChild(cardImageElem);
@@ -152,9 +219,9 @@ async function loadBoardCards(boardId) {
     }
 
     const response = await fetch("http://127.0.0.1:8000/cards/", {
-        method: "POST",
-        body: formData
-    });
+     method: "POST",
+     body: formData
+});
 
     if (!response.ok) {
         alert("Ошибка при создании карточки.");
@@ -246,47 +313,174 @@ function updateSessionCard() {
     sessionCardImage.src = card.image_url ? `http://127.0.0.1:8000/${card.image_url}` : "";
     sessionCardText.textContent = card.text;
 }
+'!!'
+'лайк'
+async function sendSwipe(liked) {
+        if (!sessionId || currentCardIndex >= cards.length) return;
 
-// Кнопка "Вперед"
-nextCardButton.addEventListener("click", () => {
-    if (currentCardIndex < cards.length - 1) {
-        currentCardIndex++;
+        // Записываем свайп (лайк/дизлайк)
+        await fetch("http://127.0.0.1:8000/swipes/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_id: sessionId,
+                card_id: cards[currentCardIndex].id,
+                user_id: null,
+                liked: liked
+            })
+        });
+
+        // Добавляем карточку в список просмотренных
+        viewedCards.add(cards[currentCardIndex].id);
+
+        // Поиск новой карточки, которая еще не была просмотрена
+        let foundNewCard = false;
+        for (let i = 0; i < cards.length; i++) {
+            if (!viewedCards.has(cards[i].id)) {
+                currentCardIndex = i;
+                foundNewCard = true;
+                break;
+            }
+        }
+
+        // Если все карточки просмотрены, показать уведомление
+        if (!foundNewCard) {
+            alert("Карточки доски закончились. Желаете ли завершить сессию и посмотреть результаты?");
+            return;
+        }
+
         updateSessionCard();
     }
-});
 
-// Кнопка "Назад"
-prevCardButton.addEventListener("click", () => {
-    if (currentCardIndex > 0) {
-        currentCardIndex--;
-        updateSessionCard();
+    function updateSessionCard() {
+        if (currentCardIndex < cards.length) {
+            sessionCardText.textContent = cards[currentCardIndex].text;
+            sessionCardImage.src = cards[currentCardIndex].image_url || "";
+        }
     }
-});
 
-// Завершение сессии (удаление сессии)
-exitSessionButton.addEventListener("click", async () => {
+    nextCardButton.addEventListener("click", () => sendSwipe(true));
+    prevCardButton.addEventListener("click", () => sendSwipe(false));
+
+ // Функция загрузки лайкнутых карточек
+async function loadLikedCards() {
     if (!sessionId) {
-        alert("Сессия не найдена.");
+        alert("Ошибка: сессия не найдена.");
         return;
     }
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/sessions/${sessionId}`, {
-            method: "DELETE"
-        });
+        console.log(`Запрашиваем лайкнутые карточки для сессии: ${sessionId}`);
 
-        if (!response.ok) {
-            throw new Error("Ошибка при удалении сессии.");
+        // Получаем список всех свайпов в этой сессии
+        const swipesResponse = await fetch(`http://127.0.0.1:8000/swipes/session/${sessionId}`);
+        if (!swipesResponse.ok) {
+            const errorText = await swipesResponse.text();
+            console.error("Ошибка запроса свайпов:", errorText);
+            alert(`Ошибка при загрузке лайкнутых карточек: ${errorText}`);
+            return;
+        }
+        const swipes = await swipesResponse.json();
+        console.log("Список всех свайпов:", swipes);
+
+        // Фильтруем только лайкнутые карточки
+        const likedSwipes = swipes.filter(swipe => swipe.liked === true);
+        console.log("Отфильтрованные лайкнутые свайпы:", likedSwipes);
+
+        if (likedSwipes.length === 0) {
+            likedCardsList.innerHTML = "<p>Вы не лайкнули ни одной карточки.</p>";
+            likedCardsModal.style.display = "flex"; // Открываем модальное окно
+            return;
         }
 
-        alert("Сессия завершена.");
-        sessionScreen.style.display = "none"; // Закрываем окно сессии
-    } catch (error) {
-        console.error("Ошибка при удалении сессии:", error);
-        alert("Ошибка при завершении сессии.");
+        likedCardsList.innerHTML = ""; // Очищаем список перед добавлением
+
+        // Загружаем карточки по `card_id`
+        const cardFetchPromises = likedSwipes.map(swipe =>
+            fetch(`http://127.0.0.1:8000/cards/${swipe.card_id}`).then(res => res.json())
+        );
+
+        const likedCards = await Promise.all(cardFetchPromises);
+        console.log("Данные о лайкнутых карточках:", likedCards);
+
+        // Отображаем карточки
+        likedCards.forEach(card => {
+    const cardDiv = document.createElement("div");
+    cardDiv.classList.add("liked-card");
+
+    // Изображение карточки
+    if (card.image_url) {
+        const imageUrl = `http://127.0.0.1:8000/uploads/${card.image_url.replace(/^uploads\//, "")}`;
+
+        const cardImage = document.createElement("img");
+        cardImage.classList.add("liked-card-image");
+        cardImage.src = imageUrl;
+        cardImage.alt = card.text;
+        cardDiv.appendChild(cardImage);
     }
+
+    // Название карточки
+    const cardTitle = document.createElement("h3");
+    cardTitle.classList.add("liked-card-title");
+    cardTitle.textContent = card.text || "Название отсутствует";
+    cardDiv.appendChild(cardTitle);
+
+    // Описание карточки
+    const cardDesc = document.createElement("p");
+    cardDesc.classList.add("liked-card-desc");
+    cardDesc.textContent = card.short_description || "Описание отсутствует";
+    cardDiv.appendChild(cardDesc);
+
+    likedCardsList.appendChild(cardDiv);
 });
 
+        likedCardsModal.style.display = "flex"; // Открываем модальное окно
+    } catch (error) {
+        console.error("Ошибка при загрузке лайкнутых карточек:", error);
+        alert("Ошибка при загрузке лайкнутых карточек.");
+    }
+}
+
+
+
+
+    // Обработчик кнопки "Закончить сессию"
+    exitSessionButton.addEventListener("click", loadLikedCards);
+
+    // Обработчик кнопки "Завершить сессию"
+    confirmEndSessionButton.addEventListener("click", async () => {
+        if (!sessionId) {
+            alert("Сессия не найдена.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/sessions/${sessionId}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok) throw new Error("Ошибка при удалении сессии.");
+
+            alert("Сессия завершена.");
+            likedCardsModal.style.display = "none"; // Закрываем окно лайкнутых карточек
+            document.getElementById("sessionScreen").style.display = "none"; // Закрываем экран сессии
+        } catch (error) {
+            console.error("Ошибка при завершении сессии:", error);
+            alert("Ошибка при завершении сессии.");
+        }
+    });
+
+    // Обработчик кнопки "Закрыть"
+    closeLikedCardsButton.addEventListener("click", () => {
+        likedCardsModal.style.display = "none";
+        document.getElementById("sessionScreen").style.display = "none"; // Закрываем экран сессии
+    });
+
+    // Обработчик кнопки "×" (закрытие модального окна)
+    closeLikedCardsModal.addEventListener("click", () => {
+        likedCardsModal.style.display = "none";
+        document.getElementById("sessionScreen").style.display = "none"; // Закрываем экран сессии
+    });
 
 '///'
 

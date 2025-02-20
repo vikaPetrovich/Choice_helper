@@ -19,3 +19,5 @@ class Swipe(Base):
 
     # Relationships
     session = relationship("Session", back_populates="swipes")
+    card = relationship("Card")
+

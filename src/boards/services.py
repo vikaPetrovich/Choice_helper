@@ -18,7 +18,7 @@ async def get_all_boards_service(skip: int, limit: int, db: AsyncSession):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении досок: {e}")
 
-async def create_board_service(board_data: BoardCreate, db: Session):
+async def create_board_service(board_data: BoardCreate, db: AsyncSession):
     try:
         new_board = Board(
             title=board_data.title,

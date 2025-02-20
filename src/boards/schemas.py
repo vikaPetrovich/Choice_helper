@@ -6,7 +6,7 @@ from uuid import UUID
 
 class BoardCreate(BaseModel):
     title: str
-    description: Optional[str]
+    description: Optional[str] = None
 
 class BoardUpdate(BaseModel):
     title: Optional[str]

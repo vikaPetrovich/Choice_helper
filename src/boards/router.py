@@ -26,7 +26,7 @@ async def get_boards(skip: int = 0, limit: int = 10, db: Session = Depends(get_d
     return await get_all_boards_service(skip=skip, limit=limit, db=db)
 
 @router.post("/", response_model=BoardResponse)
-async def create_board(board: BoardCreate, db: Session = Depends(get_db)):
+async def create_board(board: BoardCreate, db: AsyncSession = Depends(get_db)):
     return await create_board_service(board_data=board, db=db)
 
 @router.get("/{board_id}", response_model=BoardResponse)

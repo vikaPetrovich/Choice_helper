@@ -50,53 +50,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // Функция создания доски
-    async function createBoard(event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
+   async function createBoard(event) {
+    event.preventDefault();
 
+    const boardTitle = document.getElementById("boardTitleCreate");
+    const boardDescription = document.getElementById("boardDescriptionCreate");
+
+    const title = boardTitle.value.trim();
+    const description = boardDescription.value.trim();
+
+    if (!title) {
+        alert("Введите название доски");
+        return;
+    }
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/boards/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, description })
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(`Ошибка создания доски: ${errorMessage}`);
+        }
+
+        const newBoard = await response.json();
+        console.log("Создана новая доска:", newBoard);
+
+        // Создаем элемент списка (li)
+        const li = document.createElement("li");
+        li.textContent = newBoard.title;
+        li.dataset.id = newBoard.id;
+
+        // Создаем контейнер для кнопок
+        const actions = document.createElement("div");
+        actions.className = "board-actions";
+
+        // Кнопка редактирования
+        const editButton = document.createElement("button");
+        editButton.innerHTML = "✏️";
+        editButton.className = "icon-button edit";
+        editButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            currentBoardId = newBoard.id;
+            editTitle.value = newBoard.title;
+            editDescription.value = newBoard.description;
+            editModal.style.display = "flex";
+        });
+
+        // Кнопка удаления
+        const deleteButton = document.createElement("button");
+        deleteButton.innerHTML = "🗑";
+        deleteButton.className = "icon-button delete";
+        deleteButton.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await fetch(`http://127.0.0.1:8000/boards/${newBoard.id}`, { method: "DELETE" });
+            li.remove(); // Удаляем доску из списка
+        });
+
+        // Добавляем кнопки в контейнер
+        actions.appendChild(editButton);
+        actions.appendChild(deleteButton);
+        li.appendChild(actions);
+
+        // Добавляем обработчик клика для открытия доски
+        li.addEventListener("click", async () => {
+            currentBoardId = newBoard.id;
+            const boardResponse = await fetch(`http://127.0.0.1:8000/boards/${newBoard.id}`);
+            const boardData = await boardResponse.json();
+
+            boardTitle.textContent = boardData.title;
+            boardDescription.textContent = boardData.description || "Описание отсутствует";
+
+            await loadBoardCards(newBoard.id);
+
+            boardModal.style.display = "flex";
+        });
+
+        // Добавляем доску в список
+        document.getElementById("boardsList").appendChild(li);
+
+        // Закрываем модальное окно и очищаем форму
+        document.getElementById("addBoardModal").style.display = "none";
         boardTitle.value = "";
         boardDescription.value = "";
 
-
-        if (!title) {
-            alert("Введите название доски");
-            return;
-        }
-
-        try {
-            const response = await fetch("http://127.0.0.1:8000/boards/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        title: title.trim(),
-        description: description.trim() || "" // Пустая строка вместо null
-    })
-});
-
-
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                throw new Error(`Ошибка создания доски: ${errorMessage}`);
-            }
-
-            const newBoard = await response.json();
-            console.log("Создана новая доска:", newBoard);
-
-            // Добавляем новую доску в список
-            const li = document.createElement("li");
-            li.textContent = newBoard.title;
-            li.dataset.id = newBoard.id;
-            boardsList.appendChild(li);
-
-            // Закрываем модальное окно и очищаем форму
-            addBoardModal.style.display = "none";
-            boardTitleInput.value = "";
-            boardDescriptionInput.value = "";
-
-        } catch (error) {
-            console.error("Ошибка при создании доски:", error);
-            alert("Ошибка при создании доски.");
-        }
+    } catch (error) {
+        console.error("Ошибка при создании доски:", error);
+        alert("Ошибка при создании доски.");
     }
+}
+
+// Добавляем обработчик событий на форму
+document.getElementById("addBoardForm").addEventListener("submit", createBoard);
 
 
      addBoardButton.addEventListener("click", () => {

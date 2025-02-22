@@ -20,7 +20,7 @@ from src.db import get_db
 router = APIRouter()
 
 @router.get("/", response_model=list[BoardResponse])
-async def get_boards(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def get_boards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     if skip < 0 or limit <= 0:
         raise HTTPException(status_code=400, detail="Неверные параметры пагинации")
     return await get_all_boards_service(skip=skip, limit=limit, db=db)
@@ -30,7 +30,7 @@ async def create_board(board: BoardCreate, db: AsyncSession = Depends(get_db)):
     return await create_board_service(board_data=board, db=db)
 
 @router.get("/{board_id}", response_model=BoardResponse)
-async def get_board(board_id: UUID, db: Session = Depends(get_db)):
+async def get_board(board_id: UUID, db: AsyncSession = Depends(get_db)):
     return await get_board_service(board_id=board_id, db=db)
 
 @router.put("/{board_id}", response_model=BoardResponse)

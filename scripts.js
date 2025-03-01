@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 }
 
+
 // Добавляем обработчик событий на форму
 document.getElementById("addBoardForm").addEventListener("submit", createBoard);
 

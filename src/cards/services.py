@@ -94,14 +94,17 @@ async def update_card_service(card_id: UUID, card_data: CardUpdate, db: AsyncSes
 
 async def delete_card_service(card_id: UUID, db: AsyncSession):
     try:
-        query = select(Card).where(Card.id == card_id)
-        result = await db.execute(query)
+        # Ищем карточку
+        result = await db.execute(select(Card).where(Card.id == card_id))
         card = result.scalars().first()
         if not card:
             raise HTTPException(status_code=404, detail="Карточка не найдена")
 
+        # Удаляем карточку (каскадно удалятся и `board_cards`)
         await db.delete(card)
         await db.commit()
+
         return {"message": f"Карточка с ID {card_id} успешно удалена"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении карточки: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении карточки: {str(e)}")

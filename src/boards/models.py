@@ -28,8 +28,8 @@ class BoardCard(Base):
     __tablename__ = "board_cards"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    board_id = Column(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
-    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
+    board_id = Column(UUID(as_uuid=True), ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
+    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
 
     board = relationship("Board", back_populates="cards")
     card = relationship("Card", back_populates="boards")

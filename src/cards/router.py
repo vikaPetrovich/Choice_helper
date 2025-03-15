@@ -21,7 +21,7 @@ from src.cards.services import create_card_service
 from src.cards.schemas import CardResponse
 from src.db import get_db
 from src.cards.schemas import CardCreate, CardUpdate
-
+import time
 router = APIRouter()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -55,7 +55,8 @@ async def create_card(
 ):
     image_url = None
     if image:
-        file_location = f"{UPLOAD_DIR}/{image.filename}"
+        timestamp = int(time.time())
+        file_location = f"{UPLOAD_DIR}/{timestamp}_{image.filename}"
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
         image_url = file_location

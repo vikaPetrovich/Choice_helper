@@ -18,5 +18,5 @@ class Card(Base):
     created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
-    boards = relationship("BoardCard", back_populates="card")
+    boards = relationship("BoardCard", back_populates="card", cascade="all, delete")  # ✅ Теперь связи удаляются автоматически
 

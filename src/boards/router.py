@@ -15,12 +15,18 @@ from src.boards.services import (
 from src.boards.schemas import BoardCreate, BoardUpdate, BoardResponse, BoardCardCreate
 from src.cards.schemas import CardResponse
 from src.db import get_db
+from src.auth.services import get_current_user
+from src.auth.models import User
+
+from src.auth.schemas import Token, UserCreate, UserResponse, RefreshTokenRequest
+
+
 
 
 router = APIRouter()
-
+# current_user: UserResponse = Depends(get_current_user)
 @router.get("/", response_model=list[BoardResponse])
-async def get_boards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
+async def get_boards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserResponse = Depends(get_current_user)):
     if skip < 0 or limit <= 0:
         raise HTTPException(status_code=400, detail="Неверные параметры пагинации")
     return await get_all_boards_service(skip=skip, limit=limit, db=db)

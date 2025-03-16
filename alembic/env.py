@@ -14,7 +14,7 @@ from src.cards.models import Card
 from src.brackets.models import Bracket
 from src.sessions.models import Session
 from src.swipes.models import Swipe
-
+from src.auth.models import User
 from src.db import Base, DATABASE_URL
 
 

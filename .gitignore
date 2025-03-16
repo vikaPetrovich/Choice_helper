@@ -1,5 +1,5 @@
 /.env
 /create_context_for_AI.py
-/context.txt
+/context_backend.txt
 /.venv/
 /index.html

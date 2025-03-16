@@ -1,9 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from uuid import UUID
 from src.cards.models import Card
 from src.cards.schemas import CardCreate, CardUpdate
+import os
+import time
+import shutil
 
 '////////'
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +15,7 @@ from uuid import uuid4
 from src.cards.models import Card
 from src.boards.models import Board, BoardCard
 from src.cards.schemas import CardCreate
-
+UPLOAD_DIR = "uploads"
 
 async def create_card_service(card_data: CardCreate, db: AsyncSession):
     new_card = Card(
@@ -66,28 +69,70 @@ async def get_card_service(card_id: UUID, db: AsyncSession):
         raise HTTPException(status_code=500, detail=f"Ошибка при получении карточки: {e}")
 
 
-async def update_card_service(card_id: UUID, card_data: CardUpdate, db: AsyncSession):
+async def update_card_service(
+        card_id: UUID,
+        text: str,
+        short_description: str,
+        status: str,
+        image: UploadFile,
+        db: AsyncSession,
+):
     try:
+        # 🔹 Логируем входные данные
+        print(f"🔍 Обновление карточки {card_id} | image: {image.filename if image else 'Нет файла'}")
+
+        # Поиск карточки в БД
         query = select(Card).where(Card.id == card_id)
         result = await db.execute(query)
         card = result.scalars().first()
+
         if not card:
             raise HTTPException(status_code=404, detail="Карточка не найдена")
 
-        # Обновление полей
-        if card_data.text is not None:
-            card.text = card_data.text
-        if card_data.short_description is not None:
-            card.short_description = card_data.short_description
-        if card_data.image_url is not None:
-            card.image_url = card_data.image_url
-        if card_data.status is not None:
-            card.status = card_data.status
+        # 🔹 Обновляем текстовые поля
+        if text is not None:
+            card.text = text
+        if short_description is not None:
+            card.short_description = short_description
+        if status is not None:
+            card.status = status
 
+        # 🔹 Если загружено новое изображение
+        if image and image.filename:
+            file_extension = os.path.splitext(image.filename)[1]
+
+            # Проверяем допустимые расширения
+            allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+            if file_extension.lower() not in allowed_extensions:
+                raise HTTPException(status_code=400, detail="Недопустимый формат файла")
+
+            # Генерируем уникальное имя файла
+            # file_path = os.path.join(UPLOAD_DIR, f"{card_id}{file_extension}")
+            timestamp = int(time.time())
+            file_path = f"{UPLOAD_DIR}/{timestamp}_{image.filename}"
+
+            # 🔹 Логируем путь сохранения
+            print(f"📂 Сохранение файла: {file_path}")
+
+            # Сохраняем файл
+            try:
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(image.file, buffer)
+
+                # Обновляем путь к файлу в БД
+                card.image_url = file_path
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Ошибка сохранения файла: {e}")
+
+        # 🔹 Коммит изменений в БД
         await db.commit()
         await db.refresh(card)
+
+        print(f"✅ Карточка {card_id} успешно обновлена!")
         return card
+
     except Exception as e:
+        print(f"❌ Ошибка при обновлении карточки: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении карточки: {e}")
 
 

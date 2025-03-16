@@ -95,9 +95,15 @@ async def get_card(card_id: UUID, db: AsyncSession = Depends(get_db)):
 @router.put("/{card_id}", response_model=CardResponse)
 async def update_card(
     card_id: UUID,
-    card: CardUpdate,
-    db: AsyncSession = Depends(get_db)):
-    return await update_card_service(card_id=card_id, card_data=card, db=db)
+    text: str = Form(None),
+    short_description: str = Form(None),
+    status: str = Form(None),
+    image: UploadFile = File(None),  # Файл загружается как `multipart/form-data`
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_card_service(
+        card_id=card_id, text=text, short_description=short_description, status=status, image=image, db=db)
+
 @router.delete("/{card_id}")
 async def delete_card(card_id: UUID, db: AsyncSession = Depends(get_db)):
     return await delete_card_service(card_id=card_id, db=db)

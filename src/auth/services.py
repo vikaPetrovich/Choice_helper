@@ -19,7 +19,7 @@ security = HTTPBearer()  # Объявляем security локально
 SECRET_KEY = "your_secret_key"
 REFRESH_SECRET_KEY = "your_refresh_secret_key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

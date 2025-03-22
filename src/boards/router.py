@@ -11,6 +11,7 @@ from src.boards.services import (
     update_board_service,
     delete_board_service,
     add_card_to_board_service,
+    get_user_boards_service
 )
 from src.boards.schemas import BoardCreate, BoardUpdate, BoardResponse, BoardCardCreate
 from src.cards.schemas import CardResponse
@@ -25,15 +26,20 @@ from src.auth.schemas import Token, UserCreate, UserResponse, RefreshTokenReques
 
 router = APIRouter()
 # current_user: UserResponse = Depends(get_current_user)
+# Получить все доски авторизованного пользователя
 @router.get("/", response_model=list[BoardResponse])
-async def get_boards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserResponse = Depends(get_current_user)):
+async def get_boards(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
     if skip < 0 or limit <= 0:
         raise HTTPException(status_code=400, detail="Неверные параметры пагинации")
-    return await get_all_boards_service(skip=skip, limit=limit, db=db)
 
+    return await get_user_boards_service(skip=skip, limit=limit, db=db, user=current_user)
+
+# Создать новую доску (только для авторизованного пользователя)
 @router.post("/", response_model=BoardResponse)
-async def create_board(board: BoardCreate, db: AsyncSession = Depends(get_db)):
-    return await create_board_service(board_data=board, db=db)
+async def create_board(board: BoardCreate, db: AsyncSession = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
+    return await create_board_service(board_data=board, db=db, user=current_user)
 
 @router.get("/{board_id}", response_model=BoardResponse)
 async def get_board(board_id: UUID, db: AsyncSession = Depends(get_db)):

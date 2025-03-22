@@ -18,6 +18,7 @@ class BoardResponse(BaseModel):
     description: Optional[str]
     created_at: datetime
     updated_at: datetime
+    owner_id: UUID
 
     model_config = ConfigDict(from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()})
 

@@ -7,9 +7,12 @@ from src.db import Base
 import uuid
 import datetime
 from uuid import uuid4
-from sqlalchemy import Column, String, UUID
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 from src.db import Base
+from src.auth.models import User
+
+
 
 class Board(Base):
     __tablename__ = "boards"
@@ -20,9 +23,12 @@ class Board(Base):
     created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+                      nullable=False)  # ✅ Должен быть UUID
+    owner = relationship("User", back_populates="boards")  # Связь с пользователем
+
     sessions = relationship("Session", back_populates="board", cascade="all, delete-orphan")
     cards = relationship("BoardCard", back_populates="board", cascade="all, delete-orphan")
-
 
 class BoardCard(Base):
     __tablename__ = "board_cards"

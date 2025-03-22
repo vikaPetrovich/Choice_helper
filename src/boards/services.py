@@ -7,6 +7,8 @@ from uuid import UUID
 from sqlalchemy.future import select
 import uuid
 from src.cards.models import Card
+from  src.auth.models import User
+from src.boards.schemas import BoardResponse
 
 async def get_all_boards_service(skip: int, limit: int, db: AsyncSession):
     try:
@@ -18,16 +20,43 @@ async def get_all_boards_service(skip: int, limit: int, db: AsyncSession):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении досок: {e}")
 
-async def create_board_service(board_data: BoardCreate, db: AsyncSession):
+async def get_user_boards_service(skip: int, limit: int, db: AsyncSession, user: User):
+    try:
+        query = select(Board).where(Board.owner_id == user.id).offset(skip).limit(limit)
+        result = await db.execute(query)
+        boards = result.scalars().all()
+        return [BoardResponse(
+            id=board.id,
+            title=board.title,
+            description=board.description,
+            created_at=board.created_at,
+            updated_at=board.updated_at,
+            owner_id=board.owner_id,
+            owner_username=user.username
+        ) for board in boards]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении досок: {e}")
+
+
+async def create_board_service(board_data: BoardCreate, db: AsyncSession, user: User):
     try:
         new_board = Board(
             title=board_data.title,
             description=board_data.description,
+            owner_id=user.id  # Привязываем доску к пользователю
         )
         db.add(new_board)
         await db.commit()
         await db.refresh(new_board)
-        return new_board
+        return BoardResponse(
+            id=new_board.id,
+            title=new_board.title,
+            description=new_board.description,
+            created_at=new_board.created_at,
+            updated_at=new_board.updated_at,
+            owner_id=new_board.owner_id,
+            owner_username=user.username
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при создании доски: {e}")
 

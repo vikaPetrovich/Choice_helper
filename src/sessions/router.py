@@ -2,13 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.db import get_db
 from src.sessions.schemas import SessionCreate, SessionResponse
+from src.sessions.schemas import SessionParticipantCreate
+from src.sessions.services import add_participants_to_session, get_sessions_by_board_service
 from src.sessions.services import (
     create_session_service,
     get_sessions_service,
     get_session_service,
     delete_session_service,
+    get_session_results,
+    add_participants_to_session
 )
-
+from src.auth.models import User
+from src.auth.services import get_current_user
 from uuid import UUID
 
 
@@ -33,3 +38,24 @@ async def get_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
 async def delete_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
     """ Удаление сессии по ID """
     return await delete_session_service(session_id, db)
+
+@router.post("/{session_id}/participants", response_model=dict)
+async def add_session_participants(
+    session_id: UUID,
+    data: SessionParticipantCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    await add_participants_to_session(session_id, data.user_ids, db)
+    return {"message": "Пользователи добавлены в сессию"}
+
+@router.get("/{session_id}/results", response_model=list[dict])
+async def session_results(session_id: UUID, db: AsyncSession = Depends(get_db)):
+    try:
+        return await get_session_results(session_id, db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/by-board/{board_id}", response_model=list[SessionResponse])
+async def get_sessions_by_board(board_id: UUID, db: AsyncSession = Depends(get_db)):
+    return await get_sessions_by_board_service(board_id, db)

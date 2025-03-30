@@ -11,6 +11,9 @@ from src.sessions.schemas import SessionCreate
 from src.swipes.models import Swipe
 from src.boards.models import Board
 from src.auth.models import User
+from src.cards.models import Card
+from src.cards.schemas import CardResponse
+from src.sessions.schemas import SessionAnalyticsGroup
 
 
 async def create_session_service(session_data: SessionCreate, db: AsyncSession):
@@ -238,3 +241,55 @@ async def get_session_with_completion_flag(session_id: UUID, user_id: UUID, db: 
         "is_creator": participant.is_creator if participant else False,
         "is_archived": participant.is_archived if participant else False
     }
+
+
+async def get_session_analytics_service(session_id: UUID, db: AsyncSession):
+    # 1. Получаем всех участников
+    participant_result = await db.execute(
+        select(SessionParticipant.user_id).where(SessionParticipant.session_id == session_id)
+    )
+    participant_ids = [row[0] for row in participant_result.fetchall()]
+    total_participants = len(participant_ids)
+
+    if total_participants == 0:
+        return []
+
+    # 2. Получаем все лайкнутые свайпы (user_id обязателен)
+    swipes_result = await db.execute(
+        select(Swipe.card_id, Swipe.user_id)
+        .where(Swipe.session_id == session_id, Swipe.liked == True, Swipe.user_id != None)
+    )
+    swipes = swipes_result.fetchall()
+
+    # 3. Группируем по card_id
+    card_votes = {}
+    for card_id, user_id in swipes:
+        card_votes.setdefault(card_id, set()).add(user_id)
+
+    # 4. Карточки
+    card_ids = list(card_votes.keys())
+    cards_result = await db.execute(
+        select(Card).where(Card.id.in_(card_ids))
+    )
+    cards = {c.id: c for c in cards_result.scalars().all()}
+
+    # 5. Формируем buckets по количеству голосов
+    buckets = {}
+    for card_id, voters in card_votes.items():
+        count = len(voters)
+        if count not in buckets:
+            buckets[count] = []
+        card = cards.get(card_id)
+        if card:
+            buckets[count].append(card)
+
+    # 6. Возвращаем в формате List[SessionAnalyticsGroup]
+    result = []
+    for i in range(total_participants, 0, -1):
+        if i in buckets:
+            result.append(SessionAnalyticsGroup(
+                count=i,
+                cards=[CardResponse.from_orm(c) for c in buckets[i]]
+            ))
+
+    return result

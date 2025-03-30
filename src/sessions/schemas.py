@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from uuid import UUID
 from typing import List
+from src.cards.schemas import CardResponse
 
 
 class SessionBase(BaseModel):
@@ -45,3 +46,12 @@ class InvitedSessionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class SessionAnalyticsGroup(BaseModel):
+    count: int
+    cards: list[CardResponse]
+
+    class Config:
+        orm_mode = True

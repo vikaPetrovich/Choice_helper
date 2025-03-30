@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.db import get_db
-from src.sessions.schemas import SessionCreate, SessionResponse, GroupSessionCreateRequest
+from src.sessions.schemas import SessionCreate, SessionResponse, GroupSessionCreateRequest, SessionAnalyticsGroup
 from src.sessions.schemas import SessionParticipantCreate
 from src.sessions.services import add_participants_to_session, get_sessions_by_board_service, \
-    get_session_with_completion_flag
+    get_session_with_completion_flag, get_session_analytics_service
 from src.sessions.services import (
     create_session_service,
     get_sessions_service,
@@ -89,3 +89,7 @@ async def get_user_group_sessions(
     user=Depends(get_current_user)
 ):
     return await get_user_invited_sessions(user.id, db)
+
+@router.get("/{session_id}/analytics", response_model=List[SessionAnalyticsGroup])
+async def get_session_analytics(session_id: UUID, db: AsyncSession = Depends(get_db)):
+    return await get_session_analytics_service(session_id, db)

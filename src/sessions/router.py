@@ -25,24 +25,6 @@ from src.sessions.services import mark_session_completed
 
 router = APIRouter(tags=["Sessions"])
 
-# @router.post("/group", response_model=SessionResponse)
-# async def create_group_session(
-#     board_id: UUID,
-#     user_ids: list[UUID],
-#     db: AsyncSession = Depends(get_db),
-#     user=Depends(get_current_user)
-# ):
-#     session = await create_group_session_service(board_id, user_ids, db)
-#
-#     # Возвращаем нужную структуру вручную
-#     return {
-#         "id": session.id,
-#         "board_id": session.board_id,
-#         "type": session.type,
-#         "created_at": session.created_at,
-#         "is_completed": False  # обязательно!
-#     }
-
 @router.get("/", response_model=list[SessionResponse])
 async def get_sessions(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     return await get_sessions_service(skip=skip, limit=limit, db=db)
@@ -84,14 +66,16 @@ async def create_group_session(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    session = await create_group_session_service(payload.board_id, payload.user_ids, db)
+    session = await create_group_session_service(payload.board_id, payload.user_ids, db, creator_id=user.id)
 
     return {
         "id": session.id,
         "board_id": session.board_id,
         "type": session.type,
         "created_at": session.created_at,
-        "is_completed": False
+        "is_completed": False,       # ⬅️ всегда False при создании
+        "is_creator": True,          # ⬅️ текущий пользователь — инициатор
+        "is_archived": False         # ⬅️ по умолчанию не архивировано
     }
 
 @router.post("/{session_id}/complete")
@@ -99,10 +83,9 @@ async def complete_session(session_id: UUID, db: AsyncSession = Depends(get_db),
     await mark_session_completed(user.id, session_id, db)
     return {"detail": "Сессия завершена"}
 
-@router.get("/group/invited", response_model=List[InvitedSessionResponse])
-
-async def get_invited_sessions(
+@router.get("/group/invited", response_model=List[SessionResponse])
+async def get_user_group_sessions(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)):
-
-    return await get_user_invited_sessions(current_user.id, db)
+    user=Depends(get_current_user)
+):
+    return await get_user_invited_sessions(user.id, db)

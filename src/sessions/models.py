@@ -29,7 +29,9 @@ class SessionParticipant(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    is_completed = Column(Boolean, default=False)  # ✅ новое поле
+    is_completed = Column(Boolean, default=False)
+    is_creator = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
 
     session = relationship("Session", back_populates="participants")
     user = relationship("User")

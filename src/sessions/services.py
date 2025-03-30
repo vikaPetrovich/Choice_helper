@@ -133,31 +133,31 @@ async def get_sessions_by_board_service(board_id: UUID, user_id: UUID, db: Async
 
         session_ids = [s.id for s in sessions]
 
-        # Получаем статусы по is_completed
-        part_result = await db.execute(
-            select(SessionParticipant.session_id, SessionParticipant.is_completed)
+        participants_result = await db.execute(
+            select(SessionParticipant.session_id, SessionParticipant.is_completed, SessionParticipant.is_creator, SessionParticipant.is_archived)
             .where(SessionParticipant.session_id.in_(session_ids))
             .where(SessionParticipant.user_id == user_id)
         )
-        part_map = {row[0]: row[1] for row in part_result.fetchall()}
+        participants = {row[0]: row for row in participants_result.fetchall()}
 
-        # Возвращаем расширенные данные
         return [
             {
                 "id": s.id,
                 "board_id": s.board_id,
                 "type": s.type,
                 "created_at": s.created_at,
-                "is_completed": part_map.get(s.id, False)
+                "is_completed": participants.get(s.id, (None, False, False, False))[1] or False,
+                "is_creator": participants.get(s.id, (None, False, False, False))[2] or False,
+                "is_archived": participants.get(s.id, (None, False, False, False))[3] or False,
             }
             for s in sessions
         ]
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении сессий: {e}")
 
 
-async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db: AsyncSession):
+
+async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db: AsyncSession, creator_id):
     board = await db.get(Board, board_id)
     if not board:
         raise HTTPException(status_code=404, detail="Доска не найдена")
@@ -174,7 +174,10 @@ async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db:
         user = await db.get(User, uid)
         if not user:
             raise HTTPException(status_code=404, detail=f"Пользователь {uid} не найден")
-        db.add(SessionParticipant(session_id=new_session.id, user_id=uid))
+        if user.id == creator_id:
+            db.add(SessionParticipant(session_id=new_session.id, user_id=uid, is_creator=True))
+        else:
+            db.add(SessionParticipant(session_id=new_session.id, user_id=uid))
 
     await db.commit()
     await db.refresh(new_session)
@@ -183,12 +186,25 @@ async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db:
 
 async def get_user_invited_sessions(user_id: UUID, db: AsyncSession):
     stmt = (
-        select(Session)
-        .join(SessionParticipant)
+        select(Session, SessionParticipant)
+        .join(SessionParticipant, Session.id == SessionParticipant.session_id)
         .where(SessionParticipant.user_id == user_id)
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    rows = result.all()
+
+    return [
+        {
+            "id": session.id,
+            "board_id": session.board_id,
+            "type": session.type,
+            "created_at": session.created_at,
+            "is_completed": participant.is_completed,
+            "is_creator": participant.is_creator,
+            "is_archived": participant.is_archived,
+        }
+        for session, participant in rows
+    ]
 
 
 async def mark_session_completed(user_id: UUID, session_id: UUID, db: AsyncSession):
@@ -212,12 +228,13 @@ async def get_session_with_completion_flag(session_id: UUID, user_id: UUID, db: 
         )
     )
     participant = result.scalar_one_or_none()
-    is_completed = participant.is_completed if participant else False
 
     return {
         "id": session.id,
         "board_id": session.board_id,
         "type": session.type,
         "created_at": session.created_at,
-        "is_completed": is_completed  # ✅ обязательно!
+        "is_completed": participant.is_completed if participant else False,
+        "is_creator": participant.is_creator if participant else False,
+        "is_archived": participant.is_archived if participant else False
     }

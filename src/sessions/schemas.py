@@ -28,6 +28,8 @@ class SessionResponse(BaseModel):
     type: str
     created_at: datetime
     is_completed: bool
+    is_creator: bool
+    is_archived: bool
 
     class Config:
         from_attributes = True
@@ -37,6 +39,9 @@ class InvitedSessionResponse(BaseModel):
     board_id: UUID
     type: str
     created_at: datetime
+    is_completed: bool
+    is_creator: bool
+    is_archived: bool
 
     class Config:
         from_attributes = True

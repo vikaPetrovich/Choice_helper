@@ -6,13 +6,14 @@ from src.swipes.schemas import SwipeCreate
 from uuid import UUID
 from sqlalchemy.orm import joinedload
 
-async def create_swipe_service(swipe_data: SwipeCreate, db: AsyncSession):
+async def create_swipe_service(swipe_data: SwipeCreate, db: AsyncSession, user_id):
     new_swipe = Swipe(
         session_id=swipe_data.session_id,
         card_id=swipe_data.card_id,
-        user_id=swipe_data.user_id,
+        user_id=user_id,
         liked=swipe_data.liked,
     )
+    print(user_id)
     db.add(new_swipe)
     await db.commit()
     await db.refresh(new_swipe)

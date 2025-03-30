@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from uuid import UUID
@@ -14,11 +14,29 @@ class SessionBase(BaseModel):
 class SessionCreate(SessionBase):
     pass
 
-class SessionResponse(SessionBase):
+
+class SessionParticipantCreate(BaseModel):
+    user_ids: List[UUID]
+
+class GroupSessionCreateRequest(BaseModel):
+    board_id: UUID
+    user_ids: List[UUID]
+
+class SessionResponse(BaseModel):
     id: UUID
+    board_id: UUID
+    type: str
+    created_at: datetime
+    is_completed: bool
+
+    class Config:
+        from_attributes = True
+
+class InvitedSessionResponse(BaseModel):
+    id: UUID
+    board_id: UUID
+    type: str
     created_at: datetime
 
     class Config:
         from_attributes = True
-class SessionParticipantCreate(BaseModel):
-    user_ids: List[UUID]

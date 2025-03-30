@@ -12,7 +12,10 @@ from src.auth.services import (
 from src.auth.schemas import Token, UserCreate, UserResponse, RefreshTokenRequest, LoginRequest
 from src.db import get_db
 from pydantic import BaseModel
-
+from typing import List
+from src.auth.models import User
+from src.auth.schemas import UserListResponse
+from sqlalchemy.future import select
 router = APIRouter()
 
 
@@ -82,3 +85,7 @@ async def logout(
     await db.commit()
     return {"message": "Вы успешно вышли из системы"}
 
+@router.get("/users/", response_model=List[UserResponse])
+async def get_all_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User))
+    return result.scalars().all()

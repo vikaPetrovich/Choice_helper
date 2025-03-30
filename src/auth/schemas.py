@@ -29,3 +29,10 @@ class RefreshTokenRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class UserListResponse(BaseModel):
+    id: UUID
+    username: str
+
+    class Config:
+        from_attributes = True

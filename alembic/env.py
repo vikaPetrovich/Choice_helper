@@ -12,7 +12,7 @@ sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 from src.boards.models import Board, BoardCard
 from src.cards.models import Card
 from src.brackets.models import Bracket
-from src.sessions.models import Session
+from src.sessions.models import Session, SessionParticipant
 from src.swipes.models import Swipe
 from src.auth.models import User
 from src.db import Base, DATABASE_URL

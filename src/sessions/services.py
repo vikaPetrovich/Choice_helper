@@ -164,11 +164,14 @@ async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db:
     board = await db.get(Board, board_id)
     if not board:
         raise HTTPException(status_code=404, detail="Доска не найдена")
-
+    if len(user_ids) ==1:
+        type_session = 'individual'
+    else:
+        type_session = 'group'
     new_session = Session(
         id=uuid.uuid4(),
         board_id=board_id,
-        type="group"
+        type=type_session
     )
     db.add(new_session)
     await db.flush()

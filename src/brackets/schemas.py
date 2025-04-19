@@ -8,9 +8,14 @@ class BracketCreate(BaseModel):
 class BracketResponse(BaseModel):
     id: UUID
     session_id: UUID
-    structure: Dict
     results: Optional[Dict]
 
 class VoteRequest(BaseModel):
     round_number: int
-    votes: Dict[str, UUID]  # Ключ – идентификатор пары, значение – ID карточки-победителя
+    winner_id: UUID
+
+class NextPairResponse(BaseModel):
+    round_number: Optional[int]
+    participant_1: Optional[UUID]
+    participant_2: Optional[UUID]
+    finished: bool

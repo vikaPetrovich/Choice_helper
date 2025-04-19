@@ -15,6 +15,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from src.auth.services import get_current_user
 from src.auth.models import User
+from src.friends.router import router as friends_router
+
 
 
 
@@ -25,6 +27,7 @@ app.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(swipes_router, prefix="/swipes", tags=["Swipes"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(friends_router, prefix="/friends", tags=["friends"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Разрешает запросы с любого источника

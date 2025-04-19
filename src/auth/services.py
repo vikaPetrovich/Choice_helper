@@ -12,6 +12,7 @@ from fastapi import HTTPException, status, Depends
 
 from src.db import get_db
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import and_
 
 security = HTTPBearer()  # Объявляем security локально
 
@@ -143,3 +144,13 @@ async def verify_refresh_token(refresh_token: str, db: AsyncSession = Depends(ge
         raise credentials_exception
 
     return user
+
+async def search_users_service(query: str, db: AsyncSession, current_user: User):
+    stmt = select(User).where(
+        and_(
+            User.username.ilike(f"%{query}%"),
+            User.id != current_user.id
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()

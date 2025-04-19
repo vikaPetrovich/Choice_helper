@@ -36,3 +36,7 @@ class UserListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserShort(BaseModel):
+    id: UUID
+    username: str

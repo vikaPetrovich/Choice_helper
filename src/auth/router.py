@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,  Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.services import (
     create_access_token,
@@ -7,14 +7,15 @@ from src.auth.services import (
     save_refresh_token,
     authenticate_user,
     get_user,
-    create_user, get_current_user
+    create_user, get_current_user,
+    search_users_service
 )
 from src.auth.schemas import Token, UserCreate, UserResponse, RefreshTokenRequest, LoginRequest
 from src.db import get_db
 from pydantic import BaseModel
 from typing import List
 from src.auth.models import User
-from src.auth.schemas import UserListResponse
+from src.auth.schemas import UserListResponse, UserShort
 from sqlalchemy.future import select
 router = APIRouter()
 
@@ -89,3 +90,11 @@ async def logout(
 async def get_all_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User))
     return result.scalars().all()
+
+@router.get("/search", response_model=List[UserShort])
+async def search_users(
+    q: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await search_users_service(q, db, current_user)

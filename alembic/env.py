@@ -15,6 +15,7 @@ from src.brackets.models import Bracket
 from src.sessions.models import Session, SessionParticipant
 from src.swipes.models import Swipe
 from src.auth.models import User
+from src.friends.models import Friendship
 from src.db import Base, DATABASE_URL
 
 

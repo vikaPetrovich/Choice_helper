@@ -13,7 +13,6 @@ async def create_swipe_service(swipe_data: SwipeCreate, db: AsyncSession, user_i
         user_id=user_id,
         liked=swipe_data.liked,
     )
-    print(user_id)
     db.add(new_swipe)
     await db.commit()
     await db.refresh(new_swipe)

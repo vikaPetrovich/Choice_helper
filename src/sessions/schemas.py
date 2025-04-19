@@ -35,6 +35,7 @@ class SessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class InvitedSessionResponse(BaseModel):
     id: UUID
     board_id: UUID
@@ -43,6 +44,8 @@ class InvitedSessionResponse(BaseModel):
     is_completed: bool
     is_creator: bool
     is_archived: bool
+    board_title: str
+    board_owner_username: str
 
     class Config:
         from_attributes = True

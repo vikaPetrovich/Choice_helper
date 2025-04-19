@@ -78,8 +78,6 @@ async def update_card_service(
         db: AsyncSession,
 ):
     try:
-        # 🔹 Логируем входные данные
-        print(f"🔍 Обновление карточки {card_id} | image: {image.filename if image else 'Нет файла'}")
 
         # Поиск карточки в БД
         query = select(Card).where(Card.id == card_id)
@@ -111,8 +109,6 @@ async def update_card_service(
             timestamp = int(time.time())
             file_path = f"{UPLOAD_DIR}/{timestamp}_{image.filename}"
 
-            # 🔹 Логируем путь сохранения
-            print(f"📂 Сохранение файла: {file_path}")
 
             # Сохраняем файл
             try:
@@ -128,7 +124,6 @@ async def update_card_service(
         await db.commit()
         await db.refresh(card)
 
-        print(f"✅ Карточка {card_id} успешно обновлена!")
         return card
 
     except Exception as e:

@@ -20,7 +20,6 @@ async def create_enum():
         END $$;
         """)
         await conn.execute(query)
-        print("Тип sessiontype создан или уже существует.")
 
 async def main():
     await create_enum()

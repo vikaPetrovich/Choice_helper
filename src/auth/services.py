@@ -130,20 +130,15 @@ async def verify_refresh_token(refresh_token: str, db: AsyncSession = Depends(ge
         detail="Invalid refresh token",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    print('мы зашили в функцию')
-    print(refresh_token)
     try:
         payload = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
-        print(payload)
         username: str = payload.get("sub")
-        print(username)
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
     user = await get_user(db, username)
-    print(user.id)
     if not user or user.refresh_token != refresh_token:
         raise credentials_exception
 

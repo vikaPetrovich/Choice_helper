@@ -188,15 +188,19 @@ async def create_group_session_service(board_id: UUID, user_ids: list[UUID], db:
 
 
 async def get_user_invited_sessions(user_id: UUID, db: AsyncSession):
+    print('сервис')
     stmt = (
-        select(Session, SessionParticipant)
-        .join(SessionParticipant, Session.id == SessionParticipant.session_id)
-        .where(SessionParticipant.user_id == user_id)
+        select(Session, SessionParticipant, Board, User)
+            .join(SessionParticipant, Session.id == SessionParticipant.session_id)
+            .join(Board, Session.board_id == Board.id)
+            .join(User, Board.owner_id == User.id)
+            .where(SessionParticipant.user_id == user_id)
     )
+
     result = await db.execute(stmt)
     rows = result.all()
 
-    return [
+    result = [
         {
             "id": session.id,
             "board_id": session.board_id,
@@ -205,9 +209,13 @@ async def get_user_invited_sessions(user_id: UUID, db: AsyncSession):
             "is_completed": participant.is_completed,
             "is_creator": participant.is_creator,
             "is_archived": participant.is_archived,
+            "board_title": board.title,
+            "board_owner_username": owner.username,
         }
-        for session, participant in rows
+        for session, participant, board, owner in rows
     ]
+    print(result)
+    return result
 
 
 async def mark_session_completed(user_id: UUID, session_id: UUID, db: AsyncSession):

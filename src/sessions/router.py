@@ -83,11 +83,12 @@ async def complete_session(session_id: UUID, db: AsyncSession = Depends(get_db),
     await mark_session_completed(user.id, session_id, db)
     return {"detail": "Сессия завершена"}
 
-@router.get("/group/invited", response_model=List[SessionResponse])
+@router.get("/group/invited", response_model=List[InvitedSessionResponse])
 async def get_user_group_sessions(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    print('роутер')
     return await get_user_invited_sessions(user.id, db)
 
 @router.get("/{session_id}/analytics", response_model=List[SessionAnalyticsGroup])

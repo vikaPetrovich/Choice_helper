@@ -14,7 +14,7 @@ class Session(Base):
     __tablename__ = 'sessions'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False)
-    board_id = Column(UUID(as_uuid=True), ForeignKey('boards.id'), nullable=False)
+    board_id = Column(UUID(as_uuid=True), ForeignKey('boards.id', ondelete="CASCADE"), nullable=False)
     type = Column(String(50), nullable=False)  # Теперь строка вместо Enum
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     swipes = relationship("Swipe", back_populates="session", cascade="all, delete-orphan")

@@ -9,8 +9,8 @@ class Friendship(Base):
     __tablename__ = "friendships"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    requester_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    requester_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     is_accepted = Column(Boolean, default=False)
 
     requester = relationship("User", foreign_keys=[requester_id], backref="sent_requests")
